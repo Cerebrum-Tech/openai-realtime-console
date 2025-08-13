@@ -6,7 +6,7 @@ const YAPIKREDI_API_BASE_URL = "https://api.yapikredi.com/v1/assistant";
 
 // Arama için müşteri verilerini çeker
 export const getCustomerDataForCall = async (customerId) => {
-  // NOT: Bu endpoint'ler varsayımsaldır. Kendi backend'inize göre düzenleyin.
+
   const url = `${YAPIKREDI_API_BASE_URL}/customers/${customerId}/call-data`;
   try {
     const response = await axios.get(url);

@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+ 
+  yapikredi-service:
+    build: .
+    
+    container_name: yapikredi-container
+    restart: unless-stopped
+    env_file: .env 
+    environment:
+      - NODE_ENV=production 
+      - VIRTUAL_HOST=yapikredi-voice.alpi.page
+      - LETSENCRYPT_HOST=yapikredi-voice.alpi.page
+    networks:
+      - webproxy
+
+networks:
+  webproxy:
+    external: true
