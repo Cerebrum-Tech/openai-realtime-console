@@ -7,6 +7,9 @@ const app = express();
 const port = process.env.PORT || 3000;
 const apiKey = process.env.OPENAI_API_KEY;
 
+// Middleware for parsing JSON
+app.use(express.json());
+
 // Configure Vite middleware for React client
 const vite = await createViteServer({
   server: { middlewareMode: true },
