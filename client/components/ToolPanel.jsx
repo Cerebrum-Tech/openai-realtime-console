@@ -1,103 +1,31 @@
 import { useEffect, useState } from "react";
-import { tools, systemInstructions } from "../../toolsConfig.js";
-import * as oepsasApi from "../../oepsasApi.js";
+import { tools, systemInstructions } from "../../toolsConfig.js"; 
+import * as bankApi from "../../oepsasApi.js"; 
 
-// Tool function implementations
+
 const toolFunctions = {
-  // Abone Bilgileri API
-  create_abone_bilgileri: async (params) => {
-    const data = { ...params, bakiye: 0 };
-    return await oepsasApi.createAboneBilgileri(data);
+  get_customer_data_for_call: async (params) => {
+    
+    return await bankApi.getCustomerDataForCall(params.customerId);
   },
-  get_abone_by_tc_kimlik_no: async (params) => {
-    return await oepsasApi.getAboneByTcKimlikNo(params.tc_kimlik_no);
-  },
-  get_abone_by_abone_no: async (params) => {
-    return await oepsasApi.getAboneByAboneNo(params.abone_no);
-  },
-  get_abone_by_telefon: async (params) => {
-    return await oepsasApi.getAboneByTelefon(params.telefon);
-  },
-  get_abone_by_id: async (params) => {
-    return await oepsasApi.getAboneById(params.abone_id);
-  },
-  update_abone_bilgileri: async (params) => {
-    const { abone_id, ...data } = params;
-    const filteredData = Object.fromEntries(
-      Object.entries(data).filter(([_, v]) => v !== null)
-    );
-    return await oepsasApi.updateAboneBilgileri(abone_id, filteredData);
-  },
-  delete_abone_bilgileri: async (params) => {
-    return await oepsasApi.deleteAboneBilgileri(params.abone_id);
-  },
-  update_abonelik_durumu: async (params) => {
-    return await oepsasApi.updateAbonelikDurumu(params.abone_id, {
-      data: { abonelikDurumu: params.abonelikDurumu }
-    });
-  },
-  update_bakiye: async (params) => {
-    return await oepsasApi.updateBakiye(params.abone_id, {
-      data: { bakiye: params.bakiye }
-    });
-  },
-  search_abone_bilgileri: async (params) => {
-    return await oepsasApi.searchAboneBilgileri({
-      abonelikDurumu: params.abonelik_durumu,
-      sehir: params.sehir,
-      adSoyad: params.ad_soyad,
-      telefon: params.telefon,
-      aboneNo: params.abone_no,
-      tcKimlikNo: params.tc_kimlik_no
-    });
-  },
-  get_all_abone_bilgileri: async (params) => {
-    return await oepsasApi.getAllAboneBilgileri(null, null, params.abonelik_durumu);
-  },
+  apply_for_esnek_hesap: async (params) => {
   
-  // Ticket Sistemi API
-  create_ticket: async (params) => {
-    return await oepsasApi.createTicket({ data: params });
+    return await bankApi.applyForEsnekHesap(params);
   },
-  get_ticket_by_ticket_no: async (params) => {
-    return await oepsasApi.getTicketByTicketNo(params.ticket_no);
+  schedule_callback: async (params) => {
+    
+    return await bankApi.scheduleCallback(params);
   },
-  get_ticket_by_id: async (params) => {
-    return await oepsasApi.getTicketById(params.ticket_id);
+  log_call_outcome: async (params) => {
+   
+    return await bankApi.logCallOutcome(params);
   },
-  get_tickets_by_abone_id: async (params) => {
-    return await oepsasApi.getTicketsByAboneId(params.abone_id);
-  },
-  update_ticket: async (params) => {
-    const { ticket_id, ...data } = params;
-    const filteredData = Object.fromEntries(
-      Object.entries(data).filter(([_, v]) => v !== null)
-    );
-    return await oepsasApi.updateTicket(ticket_id, { data: filteredData });
-  },
-  update_ticket_durum: async (params) => {
-    return await oepsasApi.updateTicketDurum(params.ticket_id, {
-      data: { durum: params.durum }
-    });
-  },
-  search_tickets: async (params) => {
-    return await oepsasApi.searchTickets({
-      endDate: params.end_date,
-      startDate: params.start_date,
-      arizaAdresi: params.ariza_adresi,
-      duyguAnalizi: params.duygu_analizi,
-      atananPersonel: params.atanan_personel,
-      aboneId: params.abone_id,
-      oncelik: params.oncelik,
-      tip: params.tip,
-      durum: params.durum,
-      baslik: params.baslik
-    });
-  },
-  get_all_tickets: async (params) => {
-    return await oepsasApi.getAllTickets(null, null, params.durum, params.tip, params.oncelik);
+  request_agent_transfer: async (params) => {
+    
+    return await bankApi.requestAgentTransfer(params);
   }
 };
+
 
 const sessionUpdate = {
   type: "session.update",
@@ -107,6 +35,7 @@ const sessionUpdate = {
     tool_choice: "auto",
   },
 };
+
 
 function FunctionCallOutput({ functionCallOutput }) {
   const { name, arguments: args } = functionCallOutput;
@@ -121,6 +50,7 @@ function FunctionCallOutput({ functionCallOutput }) {
   );
 }
 
+
 export default function ToolPanel({
   isSessionActive,
   sendClientEvent,
@@ -134,25 +64,26 @@ export default function ToolPanel({
     if (!events || events.length === 0) return;
 
     const firstEvent = events[events.length - 1];
+    
     if (!toolsAdded && firstEvent.type === "session.created") {
-      console.log("Session created, updating with OEPSAS tools...");
+      console.log("Oturum oluşturuldu, Yapı Kredi araçları ve talimatları ile güncelleniyor...");
       sendClientEvent(sessionUpdate);
       setToolsAdded(true);
     }
 
     const mostRecentEvent = events[0];
     
-    // Handle function calls from the assistant
+  
     if (
       mostRecentEvent.type === "response.done" &&
       mostRecentEvent.response.output
     ) {
       mostRecentEvent.response.output.forEach(async (output) => {
         if (output.type === "function_call") {
-          console.log("Function call received:", output);
+          console.log("Asistandan fonksiyon çağrısı alındı:", output);
           setFunctionCallOutputs(prev => [...prev, output]);
           
-          // Process the function call
+          
           if (!isProcessing) {
             setIsProcessing(true);
             try {
@@ -160,11 +91,11 @@ export default function ToolPanel({
               const functionArgs = JSON.parse(output.arguments);
               
               if (toolFunctions[functionName]) {
-                console.log(`Executing function: ${functionName}`, functionArgs);
+                console.log(`Fonksiyon çalıştırılıyor: ${functionName}`, functionArgs);
                 const result = await toolFunctions[functionName](functionArgs);
-                console.log(`Function result:`, result);
+                console.log(`Fonksiyon sonucu:`, result);
                 
-                // Send the function result back
+               
                 setTimeout(() => {
                   sendClientEvent({
                     type: "conversation.item.create",
@@ -174,11 +105,12 @@ export default function ToolPanel({
                       output: JSON.stringify(result)
                     }
                   });
+                
                   sendClientEvent({ type: "response.create" });
                 }, 500);
               } else {
-                console.error(`Function not found: ${functionName}`);
-                // Send error response
+                console.error(`Hata: Fonksiyon bulunamadı: ${functionName}`);
+                
                 setTimeout(() => {
                   sendClientEvent({
                     type: "conversation.item.create",
@@ -192,8 +124,8 @@ export default function ToolPanel({
                 }, 500);
               }
             } catch (error) {
-              console.error("Error executing function:", error);
-              // Send error response
+              console.error("Fonksiyon çalıştırılırken bir hata oluştu:", error);
+             
               setTimeout(() => {
                 sendClientEvent({
                   type: "conversation.item.create",
@@ -214,6 +146,7 @@ export default function ToolPanel({
     }
   }, [events, toolsAdded, sendClientEvent, isProcessing]);
 
+
   useEffect(() => {
     if (!isSessionActive) {
       setToolsAdded(false);
@@ -225,12 +158,12 @@ export default function ToolPanel({
   return (
     <section className="h-full w-full flex flex-col gap-4">
       <div className="h-full bg-gray-50 rounded-md p-4 overflow-y-auto">
-        <h2 className="text-lg font-bold mb-4">OEPSAS API Tools</h2>
+        <h2 className="text-lg font-bold mb-4">Yapı Kredi Asistan Araçları</h2>
         {isSessionActive ? (
           <>
             <div className="mb-4">
               <p className="text-sm text-gray-600">
-                Zorlu Enerji Dijital Asistanı aktif. Abonelik işlemleri ve arıza bildirimleri için hazır.
+                Yapı Kredi Dijital Satış Asistanı aktif. Müşteri görüşmesi için hazır.
               </p>
             </div>
             {functionCallOutputs.length > 0 && (
