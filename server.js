@@ -7,17 +7,26 @@ const app = express();
 const port = process.env.PORT || 3000;
 const apiKey = process.env.OPENAI_API_KEY;
 
-// Middleware for parsing JSON
+
+app.use((req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  next();
+});
+
 app.use(express.json());
 
-// Configure Vite middleware for React client
+
 const vite = await createViteServer({
   server: { middlewareMode: true },
   appType: "custom",
 });
 app.use(vite.middlewares);
 
-// API route for token generation
+
 app.get("/token", async (req, res) => {
   try {
     const response = await fetch(
@@ -43,7 +52,7 @@ app.get("/token", async (req, res) => {
   }
 });
 
-// Render the React client
+
 app.use("*", async (req, res, next) => {
   const url = req.originalUrl;
 
