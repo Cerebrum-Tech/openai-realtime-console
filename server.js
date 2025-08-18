@@ -7,17 +7,93 @@ const app = express();
 const port = process.env.PORT || 3000;
 const apiKey = process.env.OPENAI_API_KEY;
 
-// Middleware for parsing JSON
+
 app.use(express.json());
 
-// Configure Vite middleware for React client
+
 const vite = await createViteServer({
   server: { middlewareMode: true },
   appType: "custom",
 });
 app.use(vite.middlewares);
 
-// API route for token generation
+
+
+const CALLBACKS_FILE_PATH = './call_back.json';
+
+
+app.post('/api/save-callback', (req, res) => {
+  const newCallback = req.body;
+  if (!newCallback.customerId || !newCallback.dateTime) {
+    return res.status(400).json({ error: 'Eksik bilgi gönderildi.' });
+  }
+
+  const logEntry = {
+    kayitTarihi: new Date().toISOString(),
+    aranacakMusteri: newCallback.customerId,
+    aranacakZaman: newCallback.dateTime
+  };
+
+  
+  fs.readFile(CALLBACKS_FILE_PATH, 'utf8', (err, data) => {
+    let callbacks = [];
+   
+    if (!err && data) {
+      try {
+        callbacks = JSON.parse(data);
+      } catch (e) {
+       
+        console.error("Mevcut callback dosyası bozuk, sıfırlanıyor.");
+      }
+    }
+
+   
+    callbacks.push(logEntry);
+
+   
+    fs.writeFile(CALLBACKS_FILE_PATH, JSON.stringify(callbacks, null, 2), (writeErr) => {
+      if (writeErr) {
+        console.error('Sunucuda geri arama dosyasına yazılırken hata:', writeErr);
+        return res.status(500).json({ error: 'Dosyaya yazma işlemi başarısız.' });
+      }
+      console.log('Geri arama talebi sunucuda başarıyla kaydedildi:', logEntry);
+      res.status(200).json({ success: true, message: 'Geri arama başarıyla kaydedildi.' });
+    });
+  });
+});
+
+app.post('/api/update-callbacks', (req, res) => {
+  const updatedCallbacks = req.body;
+  if (!Array.isArray(updatedCallbacks)) {
+    return res.status(400).json({ error: 'Geçersiz veri formatı. Bir dizi bekleniyordu.' });
+  }
+  fs.writeFile(CALLBACKS_FILE_PATH, JSON.stringify(updatedCallbacks, null, 2), (writeErr) => {
+    if (writeErr) {
+      return res.status(500).json({ error: 'Dosyaya yazma işlemi başarısız.' });
+    }
+    res.status(200).json({ success: true, message: 'Liste başarıyla güncellendi.' });
+  });
+});
+
+app.get('/api/get-callbacks', (req, res) => {
+  fs.readFile(CALLBACKS_FILE_PATH, 'utf8', (err, data) => {
+   
+    if (err || !data) {
+      return res.json([]);
+    }
+    try {
+     
+      const callbacks = JSON.parse(data);
+      res.status(200).json(callbacks);
+    } catch (parseError) {
+      console.error('JSON parse hatası:', parseError);
+      res.status(500).json({ error: 'Dosya içeriği bozuk.' });
+    }
+  });
+});
+
+
+
 app.get("/token", async (req, res) => {
   try {
     const response = await fetch(
@@ -43,7 +119,7 @@ app.get("/token", async (req, res) => {
   }
 });
 
-// Render the React client
+
 app.use("*", async (req, res, next) => {
   const url = req.originalUrl;
 

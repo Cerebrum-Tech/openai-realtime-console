@@ -3,6 +3,7 @@ import logo from "/assets/openai-logomark.svg";
 import EventLog from "./EventLog";
 import SessionControls from "./SessionControls";
 import ToolPanel from "./ToolPanel";
+import CallBacks from "./CallBacks"; // İsim sizin kodunuza göre 'CallBacks' olarak güncellendi.
 
 export default function App() {
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -40,7 +41,7 @@ export default function App() {
     await pc.setLocalDescription(offer);
 
     const baseUrl = "https://api.openai.com/v1/realtime";
-    const model = "gpt-4o-realtime-preview-2024-12-17";
+    const model = "gpt-4o-realtime-preview-2024-12-17"; // Model adını kontrol edin, gerekirse güncelleyin.
     const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
       method: "POST",
       body: offer.sdp,
@@ -86,10 +87,8 @@ export default function App() {
       const timestamp = new Date().toLocaleTimeString();
       message.event_id = message.event_id || crypto.randomUUID();
 
-      // send event before setting timestamp since the backend peer doesn't expect this field
       dataChannel.send(JSON.stringify(message));
 
-      // if guard just in case the timestamp exists by miracle
       if (!message.timestamp) {
         message.timestamp = timestamp;
       }
@@ -125,17 +124,14 @@ export default function App() {
   // Attach event listeners to the data channel when a new one is created
   useEffect(() => {
     if (dataChannel) {
-      // Append new server events to the list
       dataChannel.addEventListener("message", (e) => {
         const event = JSON.parse(e.data);
         if (!event.timestamp) {
           event.timestamp = new Date().toLocaleTimeString();
         }
-
         setEvents((prev) => [event, ...prev]);
       });
 
-      // Set session active when the data channel is opened
       dataChannel.addEventListener("open", () => {
         setIsSessionActive(true);
         setEvents([]);
@@ -152,11 +148,11 @@ export default function App() {
         </div>
       </nav>
       <main className="absolute top-16 left-0 right-0 bottom-0">
-        <section className="absolute top-0 left-0 right-[380px] bottom-0 flex">
-          <section className="absolute top-0 left-0 right-0 bottom-32 px-4 overflow-y-auto">
+        <section className="absolute top-0 left-0 right-[380px] bottom-0 flex flex-col">
+          <section className="flex-grow px-4 overflow-y-auto">
             <EventLog events={events} />
           </section>
-          <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
+          <section className="h-32 p-4">
             <SessionControls
               startSession={startSession}
               stopSession={stopSession}
@@ -167,13 +163,22 @@ export default function App() {
             />
           </section>
         </section>
-        <section className="absolute top-0 w-[380px] right-0 bottom-0 p-4 pt-0 overflow-y-auto">
-          <ToolPanel
-            sendClientEvent={sendClientEvent}
-            sendTextMessage={sendTextMessage}
-            events={events}
-            isSessionActive={isSessionActive}
-          />
+        
+        {/* --- SAĞ TARAFIN DÜZENİ GÜNCELLENDİ --- */}
+        <section className="absolute top-0 w-[380px] right-0 bottom-0 p-4 pt-0 flex flex-col gap-4">
+          {/* Üst Kısım: Araç Paneli */}
+          <div className="h-1/2">
+            <ToolPanel
+              sendClientEvent={sendClientEvent}
+              sendTextMessage={sendTextMessage}
+              events={events}
+              isSessionActive={isSessionActive}
+            />
+          </div>
+          {/* Alt Kısım: Yeni Geri Aramalar Paneli */}
+          <div className="h-1/2">
+            <CallBacks />
+          </div>
         </section>
       </main>
     </>
